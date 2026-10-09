@@ -114,6 +114,19 @@ describe('condición de victoria y derrota', () => {
   })
 })
 
+describe('el fuego nace lejos del borde de derrota', () => {
+  it('no se pierde en el primer turno sin importar la dirección del viento', () => {
+    const direccionesVistas = new Set<string>()
+    for (let semilla = 0; semilla < 200 && direccionesVistas.size < 8; semilla++) {
+      const estado = crearEstadoInicial(semilla)
+      direccionesVistas.add(estado.direccionViento)
+      avanzarTurno(estado)
+      expect(estado.estadoPartida).toBe('jugando')
+    }
+    expect(direccionesVistas.size).toBe(8)
+  })
+})
+
 describe('avanzarTurno con las ocho direcciones de viento', () => {
   it('no revienta sin importar hacia dónde sopla el viento', () => {
     const direccionesVistas = new Set<string>()

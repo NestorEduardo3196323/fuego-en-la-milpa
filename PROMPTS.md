@@ -135,6 +135,50 @@ errores reales** que no estaban cubiertos por las pruebas de Vitest:
    signo y se agregaron dos pruebas nuevas en `test/logica.test.ts`
    para que esto no vuelva a pasar desapercibido.
 
-Después de los dos arreglos, `npm test` siguió en verde (13 pruebas,
-incluida una nueva que cubre las ocho direcciones de viento) y la
-consola del navegador quedó sin errores.
+Después de los dos arreglos, `npm test` siguió en verde (14 pruebas) y
+la consola del navegador quedó sin errores.
+
+---
+
+## P4 — MÓVIL · que funcione con el dedo
+
+**Prompt enviado (plantilla P4):**
+
+```
+Hacé que esto funcione bien en un celular:
+
+1. Todo lo que se toca tiene que medir al menos 44 píxeles de alto y de ancho.
+2. Nada se sale de la pantalla a lo ancho: cero desplazamiento horizontal.
+3. El texto nunca baja de 16 píxeles.
+4. Funciona con el dedo (toque) y también con teclado, las dos cosas.
+5. Agregá la etiqueta viewport en index.html si falta.
+
+No cambies las reglas ni la dificultad. Decime qué ajustaste.
+```
+
+**Qué hizo el agente:** el viewport ya estaba en `index.html` desde el
+commit inicial. Las celdas ya medían 44×44px y el tablero tenía su
+propio `overflow-x:auto` para no romper el ancho de la página.
+
+**Decisión de alcance tomada por evidencia real, no por suposición:**
+al probar en un viewport de celular (390px) con el tablero original de
+12×12, el tablero se desbordaba y el fuego nacía fuera de la vista
+inicial — técnicamente no había scroll horizontal *de la página*, pero
+la experiencia era mala. Se redujo `CONFIG.TAMANO_GRID` de 12 a **7** (y
+`CORTAFUEGOS_INICIALES` de 8 a 6, proporcional al tamaño nuevo) para que
+el tablero completo entre en pantalla sin ningún scroll, manteniendo el
+mínimo de 44px por celda. Esto es exactamente la "regla del alcance" de
+la práctica: se achicó el proyecto en vez de dejarlo roto.
+
+**Verificación real con Playwright (viewport 390×844):**
+- Celda medida: 44×44px exactos.
+- `document.documentElement.scrollWidth === clientWidth` (390 = 390):
+  cero scroll horizontal de página.
+- Tocar celdas, avanzar turno, reiniciar: sin errores de consola.
+- Control por teclado (flechas + Enter) probado y funcionando.
+- Se jugó una partida completa hasta "perdido" (banner rojo visible,
+  tablero deshabilitado) y se reinició correctamente.
+
+La ficha quedó desactualizada en un solo dato (decía "12x12", ahora es
+"7x7" en el criterio de aceptación) — corregido a mano por decisión del
+estudiante para no pisar el diseño ya personalizado del documento.

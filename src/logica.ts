@@ -2,8 +2,8 @@
 // Este archivo no toca la pantalla: solo datos y funciones sobre el estado.
 
 export const CONFIG = {
-  TAMANO_GRID: 12, // celdas por lado de la cuadrícula
-  CORTAFUEGOS_INICIALES: 8, // cantidad de cortes disponibles al empezar
+  TAMANO_GRID: 7, // celdas por lado de la cuadrícula (cabe entera en un celular con celdas de 44px)
+  CORTAFUEGOS_INICIALES: 6, // cantidad de cortes disponibles al empezar
   PORCENTAJE_VICTORIA: 60, // % de milpa que hay que salvar para ganar
   PROB_PROPAGACION_VIENTO: 0.9, // probabilidad de que el fuego avance a favor del viento
   PROB_PROPAGACION_LATERAL: 0.3, // probabilidad de que avance en diagonal al viento
@@ -74,12 +74,14 @@ function enRango(fila: number, columna: number): boolean {
   return fila >= 0 && fila < CONFIG.TAMANO_GRID && columna >= 0 && columna < CONFIG.TAMANO_GRID
 }
 
-// Celda donde arranca el incendio: el extremo opuesto hacia donde empuja el viento.
+// Celda donde arranca el incendio: el extremo opuesto hacia donde empuja el
+// viento (si el viento empuja hacia el norte, el fuego nace en el sur y
+// viaja hacia el norte turno a turno).
 function celdaOrigenFuego(direccion: Direccion): Celda {
   const { df, dc } = VECTOR_DIRECCION[direccion]
   const mitad = Math.floor(CONFIG.TAMANO_GRID / 2)
-  const fila = df === 1 ? CONFIG.TAMANO_GRID - 1 : df === -1 ? 0 : mitad
-  const columna = dc === 1 ? CONFIG.TAMANO_GRID - 1 : dc === -1 ? 0 : mitad
+  const fila = df === 1 ? 0 : df === -1 ? CONFIG.TAMANO_GRID - 1 : mitad
+  const columna = dc === 1 ? 0 : dc === -1 ? CONFIG.TAMANO_GRID - 1 : mitad
   return { fila, columna }
 }
 
