@@ -74,6 +74,12 @@ header p{
 .hud .dato.viento .val{
   color:var(--acento);
 }
+.hud .dato.record{
+  border-color:var(--cortafuego);
+}
+.hud .dato.record .val{
+  color:var(--cortafuego);
+}
 
 .tablero-envoltorio{
   overflow-x:auto;

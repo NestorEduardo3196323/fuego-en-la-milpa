@@ -247,3 +247,34 @@ de "recorrido completo" en `test/logica.test.ts` para que exija
 específicamente llegar a "ganado" con una semilla y una jugada
 concretas, en vez de aceptar cualquier resultado. `npm test` quedó en
 15 pruebas, todas en verde.
+
+---
+
+## Mejora no pedida (para los puntos extra)
+
+No es uno de los 8 prompts de la plantilla: fue un pedido aparte, ya con
+el proyecto terminado y publicado.
+
+**Pedido:** agregar una "mejor marca" — el mayor porcentaje de milpa
+salvada entre todas las partidas jugadas — que se guarde aunque se
+cierre el navegador o se recargue la página.
+
+**Qué se hizo:** en `src/main.ts` se agregó lectura/escritura en
+`localStorage` (clave `cortafuego-mejor-marca`). Al terminar cada
+partida se compara el % salvado contra la mejor marca guardada; si la
+supera, se actualiza el `localStorage` y se muestra "¡Nuevo récord!"
+en el mensaje final. Se agregó un quinto dato al HUD ("Mejor marca")
+visible todo el tiempo.
+
+**Por qué cuenta como mejora real y no como relleno:** no estaba en
+ninguno de los 8 prompts ni en la ficha original, agrega una razón
+genuina para volver a jugar (superar tu propia marca), y usa una API
+del navegador (`localStorage`) que no se había usado antes en el
+proyecto — no es solo un cambio visual.
+
+**Verificación real:** con Playwright se jugó una partida completa sin
+cortar nada (perdida, 51% salvado), se confirmó que apareció "¡Nuevo
+récord!" y que el HUD mostró "51%". Después se **recargó la página
+entera** (`page.reload()`, simula cerrar y volver a abrir el
+navegador) y el 51% seguía ahí — confirma que persiste de verdad y no
+es una variable que se pierde al refrescar. Sin errores de consola.

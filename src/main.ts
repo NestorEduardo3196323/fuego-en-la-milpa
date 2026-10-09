@@ -10,11 +10,24 @@ import {
 } from './logica'
 
 // main.ts no decide nada: solo llama a logica.ts y dibuja el resultado.
+// Mejora no pedida por la ficha: la mejor marca se guarda en el navegador
+// (localStorage) y queda aunque se cierre o se reinicie la página.
 
 const FLECHA_POR_DIRECCION: Record<Direccion, string> = {
   norte: '↑', noreste: '↗', este: '→', sureste: '↘',
   sur: '↓', suroeste: '↙', oeste: '←', noroeste: '↖',
 }
+
+const CLAVE_MEJOR_MARCA = 'cortafuego-mejor-marca'
+
+function leerMejorMarca(): number {
+  const guardado = Number(localStorage.getItem(CLAVE_MEJOR_MARCA))
+  return Number.isFinite(guardado) ? guardado : 0
+}
+
+let mejorMarca = leerMejorMarca()
+let esNuevoRecord = false
+let resultadoYaRegistrado = false
 
 let estado: EstadoJuego = crearEstadoInicial(Date.now())
 let seleccion = { fila: 0, columna: 0 }
@@ -42,6 +55,10 @@ app.innerHTML = `
     <div class="dato">
       <span class="etq">Milpa salvada</span>
       <span class="val" id="hud-salvado">—</span>
+    </div>
+    <div class="dato record">
+      <span class="etq">Mejor marca</span>
+      <span class="val" id="hud-record">—</span>
     </div>
   </div>
 
@@ -73,6 +90,7 @@ const elHudViento = document.querySelector<HTMLSpanElement>('#hud-viento')!
 const elHudCortafuegos = document.querySelector<HTMLSpanElement>('#hud-cortafuegos')!
 const elHudTurno = document.querySelector<HTMLSpanElement>('#hud-turno')!
 const elHudSalvado = document.querySelector<HTMLSpanElement>('#hud-salvado')!
+const elHudRecord = document.querySelector<HTMLSpanElement>('#hud-record')!
 const btnAvanzar = document.querySelector<HTMLButtonElement>('#btn-avanzar')!
 const btnReiniciar = document.querySelector<HTMLButtonElement>('#btn-reiniciar')!
 
@@ -105,11 +123,15 @@ function dibujar(): void {
   elHudCortafuegos.textContent = String(estado.cortafuegosRestantes)
   elHudTurno.textContent = String(estado.turno)
   elHudSalvado.textContent = `${calcularPorcentajeSalvado(estado).toFixed(0)}%`
+  elHudRecord.textContent = `${mejorMarca.toFixed(0)}%`
+
+  const salvadoAhora = calcularPorcentajeSalvado(estado)
+  const notaRecord = esNuevoRecord ? ' ¡Nuevo récord!' : ''
 
   if (estado.estadoPartida === 'ganado') {
-    elResultado.innerHTML = `<div class="resultado ganado">¡Milpa salvada! Quedó a salvo el ${calcularPorcentajeSalvado(estado).toFixed(0)}% del cultivo.</div>`
+    elResultado.innerHTML = `<div class="resultado ganado">¡Milpa salvada! Quedó a salvo el ${salvadoAhora.toFixed(0)}% del cultivo.${notaRecord}</div>`
   } else if (estado.estadoPartida === 'perdido') {
-    elResultado.innerHTML = `<div class="resultado perdido">El fuego ganó esta vez. Se salvó solo el ${calcularPorcentajeSalvado(estado).toFixed(0)}% del cultivo.</div>`
+    elResultado.innerHTML = `<div class="resultado perdido">El fuego ganó esta vez. Se salvó solo el ${salvadoAhora.toFixed(0)}% del cultivo.${notaRecord}</div>`
   } else {
     elResultado.innerHTML = ''
   }
@@ -124,12 +146,26 @@ function intentarCortar(fila: number, columna: number): void {
 
 function intentarAvanzar(): void {
   avanzarTurno(estado)
+  registrarResultadoSiTermino()
   dibujar()
+}
+
+function registrarResultadoSiTermino(): void {
+  if (estado.estadoPartida === 'jugando' || resultadoYaRegistrado) return
+  resultadoYaRegistrado = true
+  const salvado = calcularPorcentajeSalvado(estado)
+  esNuevoRecord = salvado > mejorMarca
+  if (esNuevoRecord) {
+    mejorMarca = salvado
+    localStorage.setItem(CLAVE_MEJOR_MARCA, String(mejorMarca))
+  }
 }
 
 function reiniciar(): void {
   estado = crearEstadoInicial(Date.now())
   seleccion = { fila: 0, columna: 0 }
+  resultadoYaRegistrado = false
+  esNuevoRecord = false
   dibujar()
 }
 
