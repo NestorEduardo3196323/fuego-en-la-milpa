@@ -3,10 +3,12 @@
 
 export const CONFIG = {
   TAMANO_GRID: 7, // celdas por lado de la cuadrícula (cabe entera en un celular con celdas de 44px)
-  CORTAFUEGOS_INICIALES: 6, // cantidad de cortes disponibles al empezar
+  CORTAFUEGOS_INICIALES: 4, // cantidad de cortes disponibles al empezar (no alcanza para tapar una línea entera de 7)
   PORCENTAJE_VICTORIA: 60, // % de milpa que hay que salvar para ganar
   PROB_PROPAGACION_VIENTO: 0.9, // probabilidad de que el fuego avance a favor del viento
   PROB_PROPAGACION_LATERAL: 0.3, // probabilidad de que avance en diagonal al viento
+  ALDEA_DESPLAZAMIENTO_LATERAL: 2, // cuántas celdas se corre la aldea hacia el costado, perpendicular al viento
+  TURNO_CAMBIO_VIENTO: 4, // en qué turno el viento cambia de dirección
 }
 
 export type TipoCelda = 'sano' | 'fuego' | 'quemado' | 'cortafuego'
@@ -14,6 +16,8 @@ export type TipoCelda = 'sano' | 'fuego' | 'quemado' | 'cortafuego'
 export type Direccion =
   | 'norte' | 'noreste' | 'este' | 'sureste'
   | 'sur' | 'suroeste' | 'oeste' | 'noroeste'
+
+export type RazonDerrota = 'aldea' | 'borde' | 'milpa'
 
 export interface Celda {
   fila: number
@@ -27,6 +31,8 @@ export interface EstadoJuego {
   turno: number
   estadoPartida: 'jugando' | 'ganado' | 'perdido'
   semilla: number
+  aldea: Celda[]
+  razonDerrota?: RazonDerrota
 }
 
 // Delta de fila/columna que empuja el viento en cada dirección.
@@ -85,6 +91,35 @@ function celdaOrigenFuego(direccion: Direccion): Celda {
   return { fila, columna }
 }
 
+// Las casas de la aldea: un bloque de 2x2 a mitad de camino entre el origen
+// del fuego y el borde lejano, corrido hacia un costado (perpendicular al
+// viento). Así no queda justo en la línea recta del viento — alcanzarla
+// requiere que el fuego se propague en diagonal (lateral), así que un único
+// corte perpendicular al viento ya no alcanza para protegerla.
+function celdasAldea(direccion: Direccion): Celda[] {
+  const { df, dc } = VECTOR_DIRECCION[direccion]
+  const n = CONFIG.TAMANO_GRID
+  const origen = celdaOrigenFuego(direccion)
+  const pasos = Math.floor(n / 2)
+  const perpFila = -dc
+  const perpColumna = df
+
+  const filaBase = origen.fila + df * pasos + perpFila * CONFIG.ALDEA_DESPLAZAMIENTO_LATERAL
+  const columnaBase = origen.columna + dc * pasos + perpColumna * CONFIG.ALDEA_DESPLAZAMIENTO_LATERAL
+
+  const celdas: Celda[] = []
+  for (const df2 of [0, 1]) {
+    for (const dc2 of [0, 1]) {
+      const fila = Math.min(n - 1, Math.max(0, filaBase + df2))
+      const columna = Math.min(n - 1, Math.max(0, columnaBase + dc2))
+      if (!celdas.some((c) => c.fila === fila && c.columna === columna)) {
+        celdas.push({ fila, columna })
+      }
+    }
+  }
+  return celdas
+}
+
 export function crearEstadoInicial(semilla: number): EstadoJuego {
   const rng = crearGeneradorAleatorio(semilla)
   const indiceDireccion = Math.floor(rng() * ORDEN_DIRECCIONES.length)
@@ -105,7 +140,18 @@ export function crearEstadoInicial(semilla: number): EstadoJuego {
     turno: 0,
     estadoPartida: 'jugando',
     semilla,
+    aldea: celdasAldea(direccionViento),
   }
+}
+
+// Cambia el viento a una dirección distinta de la actual, usando un
+// generador propio (semilla + 9999) para no alterar la secuencia de
+// propagación de cada turno.
+function cambiarViento(estado: EstadoJuego): void {
+  const rng = crearGeneradorAleatorio(estado.semilla + 9999)
+  const opciones = ORDEN_DIRECCIONES.filter((d) => d !== estado.direccionViento)
+  const indice = Math.floor(rng() * opciones.length)
+  estado.direccionViento = opciones[indice]
 }
 
 // Corta una celda sana y la convierte en cortafuego. Devuelve si la acción fue válida.
@@ -183,15 +229,32 @@ export function avanzarTurno(estado: EstadoJuego): boolean {
 
   estado.turno += 1
 
+  if (estado.turno === CONFIG.TURNO_CAMBIO_VIENTO) {
+    cambiarViento(estado)
+  }
+
+  const aldeaQuemada = estado.aldea.some((c) => estado.grid[c.fila][c.columna] === 'fuego')
+  if (aldeaQuemada) {
+    estado.estadoPartida = 'perdido'
+    estado.razonDerrota = 'aldea'
+    return true
+  }
+
   if (fuegoLlegoAlBordeOpuesto(estado)) {
     estado.estadoPartida = 'perdido'
+    estado.razonDerrota = 'borde'
     return true
   }
 
   const quedaFuego = estado.grid.some((fila) => fila.some((c) => c === 'fuego'))
   if (!quedaFuego) {
     const salvado = calcularPorcentajeSalvado(estado)
-    estado.estadoPartida = salvado >= CONFIG.PORCENTAJE_VICTORIA ? 'ganado' : 'perdido'
+    if (salvado >= CONFIG.PORCENTAJE_VICTORIA) {
+      estado.estadoPartida = 'ganado'
+    } else {
+      estado.estadoPartida = 'perdido'
+      estado.razonDerrota = 'milpa'
+    }
   }
 
   return true

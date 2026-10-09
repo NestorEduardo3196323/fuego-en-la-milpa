@@ -62,6 +62,8 @@ app.innerHTML = `
     </div>
   </div>
 
+  <p class="aviso-viento" id="aviso-viento" hidden>⚠ ¡El viento cambió de dirección!</p>
+
   <div class="tablero-envoltorio">
     <div class="tablero" id="tablero" style="--tamano:${CONFIG.TAMANO_GRID}"></div>
   </div>
@@ -76,6 +78,7 @@ app.innerHTML = `
     <span><i class="fuego"></i> Fuego activo</span>
     <span><i class="quemado"></i> Quemado</span>
     <span><i class="cortafuego"></i> Cortafuego</span>
+    <span><i class="aldea"></i> Aldea (si se quema, perdés)</span>
   </div>
 
   <div id="resultado"></div>
@@ -91,6 +94,7 @@ const elHudCortafuegos = document.querySelector<HTMLSpanElement>('#hud-cortafueg
 const elHudTurno = document.querySelector<HTMLSpanElement>('#hud-turno')!
 const elHudSalvado = document.querySelector<HTMLSpanElement>('#hud-salvado')!
 const elHudRecord = document.querySelector<HTMLSpanElement>('#hud-record')!
+const elAvisoViento = document.querySelector<HTMLParagraphElement>('#aviso-viento')!
 const btnAvanzar = document.querySelector<HTMLButtonElement>('#btn-avanzar')!
 const btnReiniciar = document.querySelector<HTMLButtonElement>('#btn-reiniciar')!
 
@@ -109,7 +113,10 @@ function dibujar(): void {
       if (fila === seleccion.fila && columna === seleccion.columna) {
         celda.classList.add('seleccionada')
       }
-      celda.setAttribute('aria-label', `Celda fila ${fila + 1}, columna ${columna + 1}: ${tipo}`)
+      const esAldea = estado.aldea.some((c) => c.fila === fila && c.columna === columna)
+      if (esAldea) celda.classList.add('aldea')
+      const etiquetaAldea = esAldea ? ', con una casa de la aldea' : ''
+      celda.setAttribute('aria-label', `Celda fila ${fila + 1}, columna ${columna + 1}: ${tipo}${etiquetaAldea}`)
       celda.disabled = estado.estadoPartida !== 'jugando'
       celda.addEventListener('click', () => {
         seleccion = { fila, columna }
@@ -131,10 +138,18 @@ function dibujar(): void {
   if (estado.estadoPartida === 'ganado') {
     elResultado.innerHTML = `<div class="resultado ganado">¡Milpa salvada! Quedó a salvo el ${salvadoAhora.toFixed(0)}% del cultivo.${notaRecord}</div>`
   } else if (estado.estadoPartida === 'perdido') {
-    elResultado.innerHTML = `<div class="resultado perdido">El fuego ganó esta vez. Se salvó solo el ${salvadoAhora.toFixed(0)}% del cultivo.${notaRecord}</div>`
+    const mensajePorRazon: Record<string, string> = {
+      aldea: 'El fuego llegó a la aldea.',
+      borde: 'El fuego cruzó todo el terreno.',
+      milpa: 'El fuego se apagó solo, pero se perdió demasiada milpa.',
+    }
+    const razon = mensajePorRazon[estado.razonDerrota ?? ''] ?? 'El fuego ganó esta vez.'
+    elResultado.innerHTML = `<div class="resultado perdido">${razon} Se salvó solo el ${salvadoAhora.toFixed(0)}% del cultivo.${notaRecord}</div>`
   } else {
     elResultado.innerHTML = ''
   }
+
+  elAvisoViento.hidden = estado.turno !== CONFIG.TURNO_CAMBIO_VIENTO || estado.estadoPartida !== 'jugando'
 
   btnAvanzar.disabled = estado.estadoPartida !== 'jugando'
 }

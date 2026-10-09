@@ -278,3 +278,56 @@ récord!" y que el HUD mostró "51%". Después se **recargó la página
 entera** (`page.reload()`, simula cerrar y volver a abrir el
 navegador) y el 51% seguía ahí — confirma que persiste de verdad y no
 es una variable que se pierde al refrescar. Sin errores de consola.
+
+---
+
+## Segunda ronda de mejoras (pedido aparte: "está muy fácil")
+
+Con el juego ya entregado, se pidió hacerlo más difícil e interesante.
+Se acordaron dos cambios concretos antes de tocar código:
+
+**1. Aldea.** Cuatro celdas (casas 🏠) ubicadas a mitad de camino entre
+el origen del fuego y el borde lejano, corridas hacia un costado
+(perpendicular al viento) — no están en la línea recta por donde sopla
+el viento, así que alcanzarlas requiere propagación lateral (diagonal),
+no solo la dirección principal. Si el fuego llega a cualquier celda de
+la aldea, se **pierde al instante**, sin importar el % de milpa
+salvada. Se puede defender cortándolas como cualquier otra celda.
+
+**2. Viento cambiante.** En el turno 4 (`CONFIG.TURNO_CAMBIO_VIENTO`),
+el viento cambia a una dirección distinta (con su propia semilla
+derivada, para no alterar el azar de la propagación turno a turno). El
+HUD y el borde que hace perder se actualizan solos porque ya leían
+`estado.direccionViento` en cada turno. Se agregó un aviso visible
+("¡El viento cambió de dirección!") durante ese turno.
+
+**Por qué hizo falta un tercer cambio (dificultad):** con las dos
+reglas de arriba y la configuración original (6 cortafuegos), se
+simuló la misma estrategia simple de antes (cortar una línea completa
+al principio) sobre 500 semillas: **96.8% seguía ganando**. El motivo:
+con 6 cortafuegos alcanzaba para tapar casi toda una fila de 7, y esa
+pared también protegía la aldea de rebote. Se bajó
+`CORTAFUEGOS_INICIALES` de 6 a 4 (no alcanza para una línea entera) y
+se volvió a simular:
+
+| Estrategia | Antes (6 cortafuegos) | Después (4 cortafuegos) |
+|---|---|---|
+| Cortar una línea fija al principio (pasiva) | 96.8% ganadas | 52.6% ganadas |
+| Reaccionar cada turno cortando donde amenaza (activa) | — | 100% ganadas |
+
+Esto confirma lo que se buscaba: ya no alcanza con cortar una vez y
+despreocuparse (pasivo ≈ 50/50), pero sigue siendo ganable de forma
+consistente si se juega prestando atención (activo = 100%). No quedó
+imposible, quedó justo.
+
+**Pruebas agregadas:** `test/logica.test.ts` pasó de 15 a 20 pruebas —
+que la aldea exista y no nazca sobre el fuego, que perder por aldea
+sea un resultado real y alcanzable (semilla 0, sin cortar nada),
+que cortar las celdas de la aldea la proteja, y que el viento cambie
+exactamente en el turno configurado (y no antes).
+
+**Verificación visual con Playwright:** se confirmaron en el navegador
+las 4 casitas renderizadas en el tablero, el mensaje específico "El
+fuego llegó a la aldea" al perder así, y el aviso de cambio de viento
+apareciendo exactamente en el turno 4 y desapareciendo después. Sin
+errores de consola.

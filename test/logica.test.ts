@@ -17,6 +17,13 @@ describe('estado inicial', () => {
     expect(estado.estadoPartida).toBe('jugando')
   })
 
+  it('arma una aldea de cuatro celdas, separada de la celda donde nace el fuego', () => {
+    const estado = crearEstadoInicial(1)
+    expect(estado.aldea.length).toBe(4)
+    const origenEsAldea = estado.aldea.some((c) => estado.grid[c.fila][c.columna] === 'fuego')
+    expect(origenEsAldea).toBe(false)
+  })
+
   it('arranca con exactamente una celda en fuego', () => {
     const estado = crearEstadoInicial(7)
     const celdasEnFuego = estado.grid.flat().filter((c) => c === 'fuego')
@@ -148,8 +155,9 @@ describe('recorrido completo', () => {
     expect(estado.direccionViento).toBe('este')
 
     // El origen del fuego con viento "este" es la columna 0 (ver
-    // celdaOrigenFuego). Cortamos una línea vertical dos columnas más
-    // adelante, en el camino del fuego, antes de que llegue.
+    // celdaOrigenFuego). Con solo 4 cortafuegos no alcanza para tapar toda
+    // la columna 2 (son 7 celdas), pero sí para bloquear las filas donde
+    // el fuego realmente avanza con esta semilla.
     for (let fila = 0; fila < CONFIG.TAMANO_GRID; fila++) {
       cortarCelda(estado, fila, 2)
     }
@@ -172,5 +180,63 @@ describe('recorrido completo', () => {
       guard += 1
     }
     expect(estado.estadoPartida).toBe('perdido')
+  })
+})
+
+describe('la aldea', () => {
+  it('si nadie la defiende, el fuego puede alcanzarla y hacer perder la partida', () => {
+    // Semilla 0, sin cortar nada: se verificó que pierde específicamente
+    // por la aldea en el turno 3, no por cruzar el borde.
+    const estado = crearEstadoInicial(0)
+    let guard = 0
+    while (estado.estadoPartida === 'jugando' && guard < 60) {
+      avanzarTurno(estado)
+      guard += 1
+    }
+    expect(estado.estadoPartida).toBe('perdido')
+    expect(estado.razonDerrota).toBe('aldea')
+  })
+
+  it('cortar las celdas de la aldea la protege del fuego', () => {
+    const estado = crearEstadoInicial(0)
+    for (const c of estado.aldea) {
+      expect(cortarCelda(estado, c.fila, c.columna)).toBe(true)
+    }
+    let guard = 0
+    while (estado.estadoPartida === 'jugando' && guard < 60) {
+      avanzarTurno(estado)
+      guard += 1
+    }
+    // Protegida la aldea, ya no se puede perder por esa razón.
+    expect(estado.razonDerrota).not.toBe('aldea')
+  })
+})
+
+describe('el viento cambia de dirección a mitad de partida', () => {
+  it('cambia exactamente en el turno configurado, a una dirección distinta', () => {
+    const estado = crearEstadoInicial(0)
+    const direccionInicial = estado.direccionViento
+    // Protejo la aldea para que la partida dure lo suficiente como para
+    // observar el cambio de viento sin que termine antes por otra razón.
+    for (const c of estado.aldea) cortarCelda(estado, c.fila, c.columna)
+
+    for (let i = 0; i < CONFIG.TURNO_CAMBIO_VIENTO; i++) {
+      avanzarTurno(estado)
+    }
+
+    expect(estado.turno).toBe(CONFIG.TURNO_CAMBIO_VIENTO)
+    expect(estado.direccionViento).not.toBe(direccionInicial)
+  })
+
+  it('antes de ese turno, el viento todavía no cambió', () => {
+    const estado = crearEstadoInicial(0)
+    const direccionInicial = estado.direccionViento
+    for (const c of estado.aldea) cortarCelda(estado, c.fila, c.columna)
+
+    for (let i = 0; i < CONFIG.TURNO_CAMBIO_VIENTO - 1; i++) {
+      avanzarTurno(estado)
+    }
+
+    expect(estado.direccionViento).toBe(direccionInicial)
   })
 })
