@@ -1,7 +1,7 @@
 # Registro de prompts — Cortafuego: Fuego en la Milpa
 
 Cada entrada se agrega en el momento en que se dirige al agente, según la
-práctica de la Semana 2. En esta sesión el agente es Claude Code trabajando
+práctica de la Semana 2. En esta sesión el agente es Copilot trabajando
 directamente sobre el proyecto, dirigido por las decisiones de la ficha y
 las instrucciones dadas en el chat.
 
