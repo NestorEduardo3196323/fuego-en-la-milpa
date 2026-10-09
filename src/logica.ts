@@ -58,7 +58,10 @@ export function crearGeneradorAleatorio(semilla: number): () => number {
 }
 
 function direccionDesdeIndice(indice: number): Direccion {
-  return ORDEN_DIRECCIONES[indice % ORDEN_DIRECCIONES.length]
+  const n = ORDEN_DIRECCIONES.length
+  // En JS el resto de un número negativo conserva el signo (-1 % 8 === -1),
+  // así que hay que sumarle n antes de volver a aplicar el módulo.
+  return ORDEN_DIRECCIONES[((indice % n) + n) % n]
 }
 
 // Las dos direcciones a 45° de la dirección del viento (propagación lateral).

@@ -114,6 +114,18 @@ describe('condición de victoria y derrota', () => {
   })
 })
 
+describe('avanzarTurno con las ocho direcciones de viento', () => {
+  it('no revienta sin importar hacia dónde sopla el viento', () => {
+    const direccionesVistas = new Set<string>()
+    for (let semilla = 0; semilla < 200 && direccionesVistas.size < 8; semilla++) {
+      const estado = crearEstadoInicial(semilla)
+      direccionesVistas.add(estado.direccionViento)
+      expect(() => avanzarTurno(estado)).not.toThrow()
+    }
+    expect(direccionesVistas.size).toBe(8)
+  })
+})
+
 describe('recorrido completo', () => {
   it('se puede llegar al final bueno cortando una línea perpendicular al viento', () => {
     const estado = crearEstadoInicial(9)

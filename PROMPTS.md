@@ -88,3 +88,53 @@ Resultado real de `npm test`:
 
 No hizo falta corregir nada en `src/logica.ts`: las 12 pasaron al primer
 intento.
+
+---
+
+## P3 — PANTALLA · que se vea
+
+**Prompt enviado (plantilla P3):**
+
+```
+Creá src/main.ts y src/estilo.css para mostrar Cortafuego — Fuego en la
+Milpa en pantalla.
+
+REGLAS
+- main.ts NO decide nada: llama a las funciones de logica.ts y dibuja el
+  resultado.
+- Tres estados visibles: el inicio, el uso normal y el final.
+- Contraste alto y texto nunca menor a 16 píxeles.
+- Los colores según mi ficha. Sin imágenes ni librerías externas.
+- Importá el CSS desde main.ts con: import './estilo.css'
+
+Ajustá index.html para que tenga un div con id="app" y cargue src/main.ts
+como módulo. Al terminar confirmame que no hay errores en la consola.
+```
+
+**Qué hizo el agente:** generó `src/main.ts` (HUD con viento/cortafuegos/
+turno/% salvado, tablero clickeable, botones Avanzar turno y Reiniciar,
+banner de resultado) y `src/estilo.css`, usando solo los colores de la
+ficha (verde/naranja/gris/celeste). `index.html` ya tenía `#app` y el
+`<script type="module" src="/src/main.ts">` desde el commit inicial.
+
+**Verificación real en navegador (no solo "debería andar"):** se levantó
+el servidor de desarrollo (`npm run dev`) y se controló con un navegador
+automatizado (Playwright) simulando un celular de 390px de ancho:
+cortar celdas, avanzar turno, revisar la consola. Esto encontró **dos
+errores reales** que no estaban cubiertos por las pruebas de Vitest:
+
+1. **`direccionesLaterales` rompía con viento "norte".** En JavaScript
+   `-1 % 8` da `-1`, no `7`, así que `ORDEN_DIRECCIONES[-1]` era
+   `undefined` y el juego tiraba una excepción al primer "Avanzar
+   turno" cuando el viento soplaba justo hacia el norte. Se corrigió el
+   cálculo del índice en `src/logica.ts`.
+2. **El fuego nacía pegado al borde de derrota.** `celdaOrigenFuego`
+   tenía el signo invertido: ubicaba el fuego en el borde *hacia* donde
+   empuja el viento, en vez del extremo *opuesto*. Resultado: se perdía
+   en el primer turno sin importar lo que se cortara. Se corrigió el
+   signo y se agregaron dos pruebas nuevas en `test/logica.test.ts`
+   para que esto no vuelva a pasar desapercibido.
+
+Después de los dos arreglos, `npm test` siguió en verde (13 pruebas,
+incluida una nueva que cubre las ocho direcciones de viento) y la
+consola del navegador quedó sin errores.
