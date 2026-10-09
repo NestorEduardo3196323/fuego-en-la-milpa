@@ -9,6 +9,8 @@ export const CONFIG = {
   PROB_PROPAGACION_LATERAL: 0.3, // probabilidad de que avance en diagonal al viento
   ALDEA_DESPLAZAMIENTO_LATERAL: 2, // cuántas celdas se corre la aldea hacia el costado, perpendicular al viento
   TURNO_CAMBIO_VIENTO: 4, // en qué turno el viento cambia de dirección
+  INTERVALO_FUEGO_MS: 1300, // cada cuánto avanza el fuego solo, en milisegundos (juego en tiempo real)
+  INTERVALO_MOVIMIENTO_MS: 150, // cooldown entre pasos del personaje al mantener una tecla o botón
 }
 
 export type TipoCelda = 'sano' | 'fuego' | 'quemado' | 'cortafuego'
